@@ -1,0 +1,79 @@
+*filter
+:INPUT DROP [0:0]
+:FORWARD DROP [0:0]
+:OUTPUT DROP [0:0]
+:LOGIT - [0:0]
+
+# INPUT/OUTPUT Loopback interface is trusted
+-A INPUT -i lo -j ACCEPT
+-A OUTPUT -o lo -j ACCEPT
+
+# IP6: INPUT Antispoof Policy
+-A INPUT -i he6 -s 2001:999:7:999::0/64 -j DROP
+
+# ICMPv6: INPUT policies for packets arriving to router
+-A INPUT -p icmpv6 --icmpv6-type destination-unreachable -m limit --limit 5/sec -j ACCEPT
+-A INPUT -p icmpv6 --icmpv6-type packet-too-big -m limit --limit 5/sec -j ACCEPT
+-A INPUT -p icmpv6 --icmpv6-type time-exceeded -m limit --limit 5/sec -j ACCEPT
+-A INPUT -p icmpv6 --icmpv6-type parameter-problem -m limit --limit 5/sec -j ACCEPT
+-A INPUT -p icmpv6 --icmpv6-type echo-request -m limit --limit 5/sec -j ACCEPT
+-A INPUT -p icmpv6 --icmpv6-type echo-reply -m limit --limit 5/sec -j ACCEPT
+
+# ICMPv6: INPUT policies on neighbour/router discovery
+-A INPUT ! -i he6 -p icmpv6 --icmpv6-type neighbour-solicitation -m hl --hl-eq 255 -j ACCEPT
+-A INPUT ! -i he6 -p icmpv6 --icmpv6-type neighbour-advertisement -m hl --hl-eq 255 -j ACCEPT
+-A INPUT ! -i he6 -p icmpv6 --icmpv6-type router-solicitation -m hl --hl-eq 255 -j ACCEPT
+-A INPUT ! -i he6 -p icmpv6 --icmpv6-type router-advertisement -m hl --hl-eq 255 -j ACCEPT
+
+# DNS
+-A INPUT -p udp --dport 53 -j ACCEPT
+-A INPUT -p tcp --dport 53 -j ACCEPT
+
+# DHCPv6
+-A INPUT -p udp --dport 547 -j ACCEPT
+
+# Multicast Policy
+-A INPUT -d ff02::/112 -j ACCEPT
+
+# Create state information as needed
+-A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
+-A INPUT -j LOGIT
+
+# Packets Forwarding Across the Router
+-A FORWARD -p icmpv6 --icmpv6-type destination-unreachable -m limit --limit 5/sec -j ACCEPT
+-A FORWARD -p icmpv6 --icmpv6-type packet-too-big -m limit --limit 5/sec -j ACCEPT
+-A FORWARD -p icmpv6 --icmpv6-type time-exceeded -m limit --limit 5/sec -j ACCEPT
+-A FORWARD -p icmpv6 --icmpv6-type parameter-problem -m limit --limit 5/sec -j ACCEPT
+-A FORWARD -p icmpv6 --icmpv6-type echo-request -m limit --limit 5/sec -j ACCEPT
+-A FORWARD -p icmpv6 --icmpv6-type echo-reply -m limit --limit 5/sec -j ACCEPT
+
+-A FORWARD -p tcp -m set --match-set iana-allocated src -j ACCEPT
+-A FORWARD -p udp -m set --match-set iana-allocated src -j ACCEPT
+-A FORWARD -m state --state RELATED,ESTABLISHED -j ACCEPT
+-A FORWARD -j LOGIT
+
+# IP6: OUTPUT antispoof
+-A OUTPUT -o he6 -d 2001:999:7:999::0/64 -j DROP
+
+# DHCPv6
+-A OUTPUT -p udp --dport 546 -j ACCEPT
+
+-A OUTPUT -p icmpv6 --icmpv6-type destination-unreachable -m limit --limit 5/sec -j ACCEPT
+-A OUTPUT -p icmpv6 --icmpv6-type packet-too-big -m limit --limit 5/sec -j ACCEPT
+-A OUTPUT -p icmpv6 --icmpv6-type time-exceeded -m limit --limit 5/sec -j ACCEPT
+-A OUTPUT -p icmpv6 --icmpv6-type parameter-problem -m limit --limit 5/sec -j ACCEPT
+-A OUTPUT -p icmpv6 --icmpv6-type echo-request -m limit --limit 5/sec -j ACCEPT
+-A OUTPUT -p icmpv6 --icmpv6-type echo-reply -m limit --limit 5/sec -j ACCEPT
+
+-A OUTPUT ! -o he6 -p icmpv6 --icmpv6-type neighbour-solicitation -m hl --hl-eq 255 -j ACCEPT
+-A OUTPUT ! -o he6 -p icmpv6 --icmpv6-type neighbour-advertisement -m hl --hl-eq 255 -j ACCEPT
+-A OUTPUT ! -o he6 -p icmpv6 --icmpv6-type router-solicitation -m hl --hl-eq 255 -j ACCEPT
+-A OUTPUT ! -o he6 -p icmpv6 --icmpv6-type router-advertisement -m hl --hl-eq 255 -j ACCEPT
+
+-A OUTPUT -p tcp -m set --match-set iana-allocated src -j ACCEPT
+-A OUTPUT -p udp -m set --match-set iana-allocated src -j ACCEPT
+-A OUTPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
+-A OUTPUT -j LOGIT
+
+-A LOGIT -m limit --limit 30/sec -j LOG --log-prefix "ip6tables:" --log-level 7
+COMMIT

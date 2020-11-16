@@ -1,0 +1,20 @@
+# /etc/network/interfaces
+auto eth2.60
+iface eth2.60 inet6 static
+    address 2001:999:7:999:600::1
+    netmask 72
+auto eth2.70
+iface eth2.70 inet6 static
+    address 2001:999:7:999:700::1
+    netmask 72
+
+auto he6
+iface he6 inet6 v4tunnel
+    address 2001:999:7:999::2
+    netmask 64
+    endpoint 216.66.22.2
+    # replace with your local v4 addr
+    local X.X.X.X
+    ttl 255
+    gateway 2001:999:7:999::1
+    dns-addresses ::1
